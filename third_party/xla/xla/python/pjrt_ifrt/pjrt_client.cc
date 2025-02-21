@@ -797,6 +797,16 @@ absl::StatusOr<std::unique_ptr<PjRtClient>> PjRtClient::Create(
     }
   }
 
+  // For non-addressable devices, pjrt_device is null, we need to set the
+  // default memory.
+  auto default_memory = client->addressable_devices_.front()->DefaultMemory();
+  for (auto& device : client->owned_devices_) {
+    auto* pjrt_device = device->pjrt_device();
+    if (!pjrt_device) {
+      device->default_memory_ = default_memory;
+    }
+  }
+
   LogDeviceSummary(client.get());
   return client;
 }
