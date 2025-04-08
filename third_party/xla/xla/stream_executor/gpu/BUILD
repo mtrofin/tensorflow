@@ -616,6 +616,7 @@ xla_test(
         ":gpu_test_kernels_fatbin",
         "//xla/service:platform_util",
         "//xla/stream_executor:device_memory",
+        "//xla/stream_executor:kernel",
         "//xla/stream_executor:kernel_spec",
         "//xla/stream_executor:launch_dim",
         "//xla/stream_executor:platform",
@@ -625,6 +626,7 @@ xla_test(
         "//xla/stream_executor:typed_kernel_factory",
         "//xla/stream_executor/rocm:rocm_platform_id",
         "//xla/tsl/lib/core:status_test_util",
+        "//xla/tsl/platform:statusor",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -864,11 +866,23 @@ cc_library(
     ],
 )
 
-exports_files(["buffer_comparator_kernel_lib.cu.h"])
+exports_files([
+    "buffer_comparator_kernel_lib.cu.h",
+    "ragged_all_to_all_kernel_lib.cu.h",
+])
 
 cc_library(
     name = "make_batch_pointers_kernel",
     hdrs = ["make_batch_pointers_kernel.h"],
+    deps = [
+        "//xla/stream_executor:device_memory",
+        "//xla/stream_executor:kernel",
+    ],
+)
+
+cc_library(
+    name = "ragged_all_to_all_kernel",
+    hdrs = ["ragged_all_to_all_kernel.h"],
     deps = [
         "//xla/stream_executor:device_memory",
         "//xla/stream_executor:kernel",
