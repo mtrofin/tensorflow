@@ -90,6 +90,8 @@ load(
     "@cuda_redist_json//:distributions.bzl",
     "CUDA_REDISTRIBUTIONS",
     "CUDNN_REDISTRIBUTIONS",
+    "MIRRORED_TAR_CUDA_REDISTRIBUTIONS",
+    "MIRRORED_TAR_CUDNN_REDISTRIBUTIONS",
 )
 load(
     "@local_xla//third_party/gpus/cuda/hermetic:cuda_redist_init_repositories.bzl",
@@ -99,10 +101,12 @@ load(
 
 cuda_redist_init_repositories(
     cuda_redistributions = CUDA_REDISTRIBUTIONS,
+    mirrored_tar_cuda_redistributions = MIRRORED_TAR_CUDA_REDISTRIBUTIONS,
 )
 
 cudnn_redist_init_repository(
     cudnn_redistributions = CUDNN_REDISTRIBUTIONS,
+    mirrored_tar_cudnn_redistributions = MIRRORED_TAR_CUDNN_REDISTRIBUTIONS,
 )
 
 load(

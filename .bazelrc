@@ -614,6 +614,7 @@ build:rbe_linux_cuda --config=cuda_clang_official
 build:rbe_linux_cuda --config=rbe_linux_cpu
 # For Remote build execution -- GPU configuration
 build:rbe_linux_cuda --repo_env=REMOTE_GPU_TESTING=1
+build:rbe_linux_cuda --repo_env=USE_CUDA_TAR_ARCHIVE_DEPENDENCIES=1
 
 build:rbe_linux_cuda_nvcc --config=rbe_linux_cuda
 build:rbe_linux_cuda_nvcc --config=cuda_nvcc

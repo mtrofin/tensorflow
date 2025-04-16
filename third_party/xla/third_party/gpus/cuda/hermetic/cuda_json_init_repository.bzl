@@ -19,22 +19,33 @@ load(
     "//third_party/gpus/cuda/hermetic:cuda_redist_versions.bzl",
     "CUDA_REDIST_JSON_DICT",
     "CUDNN_REDIST_JSON_DICT",
+    "MIRRORED_TARS_CUDNN_REDIST_JSON_DICT",
+    "MIRRORED_TARS_REDIST_JSON_DICT",
 )
 
 def _get_env_var(ctx, name):
     return ctx.os.environ.get(name)
 
-def _get_json_file_content(repository_ctx, url_to_sha256, json_file_name):
-    if len(url_to_sha256) > 1:
-        (url, sha256) = url_to_sha256
+def _get_json_file_content(
+        repository_ctx,
+        url_to_sha256,
+        json_file_name):
+    (url, sha256) = url_to_sha256
+
+    if json_file_name.endswith("_tar.json"):
+        json_tar_downloaded = repository_ctx.download(
+            url = url,
+            sha256 = sha256,
+            output = json_file_name,
+        )
+        if json_tar_downloaded.success != "true":
+            return "{}"
     else:
-        url = url_to_sha256[0]
-        sha256 = ""
-    repository_ctx.download(
-        url = tf_mirror_urls(url),
-        sha256 = sha256,
-        output = json_file_name,
-    )
+        repository_ctx.download(
+            url = tf_mirror_urls(url),
+            sha256 = sha256,
+            output = json_file_name,
+        )
     return repository_ctx.read(repository_ctx.path(json_file_name))
 
 def _cuda_redist_json_impl(repository_ctx):
@@ -70,28 +81,46 @@ def _cuda_redist_json_impl(repository_ctx):
             ),
         )
     cuda_redistributions = "{}"
+    mirrored_tar_cuda_redistributions = "{}"
     cudnn_redistributions = "{}"
+    mirrored_tar_cudnn_redistributions = "{}"
     if cuda_version and not local_cuda_path:
         cuda_redistributions = _get_json_file_content(
             repository_ctx,
-            repository_ctx.attr.cuda_json_dict[cuda_version],
-            "redistrib_cuda_%s.json" % cuda_version,
+            url_to_sha256 = repository_ctx.attr.cuda_json_dict[cuda_version],
+            json_file_name = "redistrib_cuda_%s.json" % cuda_version,
+        )
+        mirrored_tar_cuda_redistributions = _get_json_file_content(
+            repository_ctx,
+            url_to_sha256 = repository_ctx.attr.mirrored_tars_cuda_json_dict[cuda_version],
+            json_file_name = "redistrib_cuda_%s_tar.json" % cuda_version,
         )
     if cudnn_version and not local_cudnn_path:
         cudnn_redistributions = _get_json_file_content(
             repository_ctx,
-            repository_ctx.attr.cudnn_json_dict[cudnn_version],
-            "redistrib_cudnn_%s.json" % cudnn_version,
+            url_to_sha256 = repository_ctx.attr.cudnn_json_dict[cudnn_version],
+            json_file_name = "redistrib_cudnn_%s.json" % cudnn_version,
+        )
+        mirrored_tar_cudnn_redistributions = _get_json_file_content(
+            repository_ctx,
+            url_to_sha256 = repository_ctx.attr.mirrored_tars_cudnn_json_dict[cudnn_version],
+            json_file_name = "redistrib_cudnn_%s_tar.json" % cudnn_version,
         )
 
     repository_ctx.file(
         "distributions.bzl",
         """CUDA_REDISTRIBUTIONS = {cuda_redistributions}
 
+MIRRORED_TAR_CUDA_REDISTRIBUTIONS = {mirrored_tar_cuda_redistributions}
+
 CUDNN_REDISTRIBUTIONS = {cudnn_redistributions}
+
+MIRRORED_TAR_CUDNN_REDISTRIBUTIONS = {mirrored_tar_cudnn_redistributions}
 """.format(
             cuda_redistributions = cuda_redistributions,
+            mirrored_tar_cuda_redistributions = mirrored_tar_cuda_redistributions,
             cudnn_redistributions = cudnn_redistributions,
+            mirrored_tar_cudnn_redistributions = mirrored_tar_cudnn_redistributions,
         ),
     )
     repository_ctx.file(
@@ -104,6 +133,8 @@ cuda_redist_json = repository_rule(
     attrs = {
         "cuda_json_dict": attr.string_list_dict(mandatory = True),
         "cudnn_json_dict": attr.string_list_dict(mandatory = True),
+        "mirrored_tars_cuda_json_dict": attr.string_list_dict(mandatory = True),
+        "mirrored_tars_cudnn_json_dict": attr.string_list_dict(mandatory = True),
     },
     environ = [
         "HERMETIC_CUDA_VERSION",
@@ -117,9 +148,13 @@ cuda_redist_json = repository_rule(
 
 def cuda_json_init_repository(
         cuda_json_dict = CUDA_REDIST_JSON_DICT,
-        cudnn_json_dict = CUDNN_REDIST_JSON_DICT):
+        cudnn_json_dict = CUDNN_REDIST_JSON_DICT,
+        mirrored_tars_cuda_json_dict = MIRRORED_TARS_REDIST_JSON_DICT,
+        mirrored_tars_cudnn_json_dict = MIRRORED_TARS_CUDNN_REDIST_JSON_DICT):
     cuda_redist_json(
         name = "cuda_redist_json",
         cuda_json_dict = cuda_json_dict,
         cudnn_json_dict = cudnn_json_dict,
+        mirrored_tars_cuda_json_dict = mirrored_tars_cuda_json_dict,
+        mirrored_tars_cudnn_json_dict = mirrored_tars_cudnn_json_dict,
     )

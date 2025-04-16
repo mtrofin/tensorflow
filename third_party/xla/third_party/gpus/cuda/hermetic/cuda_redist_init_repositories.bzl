@@ -19,6 +19,8 @@ load(
     "//third_party/gpus/cuda/hermetic:cuda_redist_versions.bzl",
     "CUDA_REDIST_PATH_PREFIX",
     "CUDNN_REDIST_PATH_PREFIX",
+    "MIRRORED_TAR_CUDA_REDIST_PATH_PREFIX",
+    "MIRRORED_TAR_CUDNN_REDIST_PATH_PREFIX",
     "REDIST_VERSIONS_TO_BUILD_TEMPLATES",
 )
 
@@ -277,21 +279,47 @@ def _use_local_cudnn_path(repository_ctx, local_cudnn_path):
     """ Creates symlinks and initializes hermetic CUDNN repository."""
     use_local_path(repository_ctx, local_cudnn_path, ["include", "lib"])
 
-def _download_redistribution(repository_ctx, arch_key, path_prefix):
-    (url, sha256) = repository_ctx.attr.url_dict[arch_key]
-
-    # If url is not relative, then appending prefix is not needed.
-    if not (url.startswith("http") or url.startswith("file:///")):
-        url = path_prefix + url
-    archive_name = get_archive_name(url)
-    file_name = _get_file_name(url)
-
-    print("Downloading and extracting {}".format(url))  # buildifier: disable=print
-    repository_ctx.download(
-        url = tf_mirror_urls(url),
-        output = file_name,
-        sha256 = sha256,
+def _download_redistribution(
+        repository_ctx,
+        arch_key,
+        path_prefix,
+        mirrored_tar_path_prefix):
+    archive_name = ""
+    file_name = ""
+    is_tar_downloaded_successfully = False
+    use_cuda_tars = get_env_var(
+        repository_ctx,
+        "USE_CUDA_TAR_ARCHIVE_DEPENDENCIES",
     )
+    if use_cuda_tars and arch_key in repository_ctx.attr.mirrored_tar_url_dict.keys():
+        (tar_url, tar_sha256) = repository_ctx.attr.mirrored_tar_url_dict[arch_key]
+        tar_url = mirrored_tar_path_prefix + tar_url
+        archive_name = get_archive_name(tar_url)
+        file_name = _get_file_name(tar_url)
+        print("Downloading and extracting {}".format(tar_url))  # buildifier: disable=print
+        dist_tar_downloaded = repository_ctx.download(
+            url = tar_url,
+            output = file_name,
+            sha256 = tar_sha256,
+        )
+        if dist_tar_downloaded.success == "true":
+            is_tar_downloaded_successfully = True
+
+    if not is_tar_downloaded_successfully:
+        (url, sha256) = repository_ctx.attr.url_dict[arch_key]
+
+        # If url is not relative, then appending prefix is not needed.
+        if not (url.startswith("http") or url.startswith("file:///")):
+            url = path_prefix + url
+        archive_name = get_archive_name(url)
+        file_name = _get_file_name(url)
+
+        print("Downloading and extracting {}".format(url))  # buildifier: disable=print
+        repository_ctx.download(
+            url = tf_mirror_urls(url),
+            output = file_name,
+            sha256 = sha256,
+        )
     if repository_ctx.attr.override_strip_prefix:
         strip_prefix = repository_ctx.attr.override_strip_prefix
     else:
@@ -363,6 +391,7 @@ def _use_downloaded_cuda_redistribution(repository_ctx):
         repository_ctx,
         arch_key,
         repository_ctx.attr.cuda_redist_path_prefix,
+        repository_ctx.attr.mirrored_tar_cuda_redist_path_prefix,
     )
     lib_name_to_version_dict = get_lib_name_to_version_dict(repository_ctx)
     major_version = get_major_library_version(repository_ctx, lib_name_to_version_dict)
@@ -390,16 +419,19 @@ cuda_repo = repository_rule(
     implementation = _cuda_repo_impl,
     attrs = {
         "url_dict": attr.string_list_dict(mandatory = True),
+        "mirrored_tar_url_dict": attr.string_list_dict(mandatory = False),
         "versions": attr.string_list(mandatory = True),
         "build_templates": attr.label_list(mandatory = True),
         "override_strip_prefix": attr.string(),
         "cuda_redist_path_prefix": attr.string(),
+        "mirrored_tar_cuda_redist_path_prefix": attr.string(mandatory = False),
     },
     environ = [
         "HERMETIC_CUDA_VERSION",
         "TF_CUDA_VERSION",
         "LOCAL_CUDA_PATH",
         "CUDA_REDIST_TARGET_PLATFORM",
+        "USE_CUDA_TAR_ARCHIVE_DEPENDENCIES",
     ],
 )
 
@@ -448,6 +480,7 @@ def _use_downloaded_cudnn_redistribution(repository_ctx):
         repository_ctx,
         arch_key,
         repository_ctx.attr.cudnn_redist_path_prefix,
+        repository_ctx.attr.mirrored_tar_cudnn_redist_path_prefix,
     )
 
     lib_name_to_version_dict = get_lib_name_to_version_dict(repository_ctx)
@@ -474,10 +507,12 @@ cudnn_repo = repository_rule(
     implementation = _cudnn_repo_impl,
     attrs = {
         "url_dict": attr.string_list_dict(mandatory = True),
+        "mirrored_tar_url_dict": attr.string_list_dict(mandatory = False),
         "versions": attr.string_list(mandatory = True),
         "build_templates": attr.label_list(mandatory = True),
         "override_strip_prefix": attr.string(),
         "cudnn_redist_path_prefix": attr.string(),
+        "mirrored_tar_cudnn_redist_path_prefix": attr.string(),
     },
     environ = [
         "HERMETIC_CUDNN_VERSION",
@@ -486,6 +521,7 @@ cudnn_repo = repository_rule(
         "TF_CUDA_VERSION",
         "LOCAL_CUDNN_PATH",
         "CUDA_REDIST_TARGET_PLATFORM",
+        "USE_CUDA_TAR_ARCHIVE_DEPENDENCIES",
     ],
 )
 
@@ -541,14 +577,23 @@ def get_version_and_template_lists(version_to_template):
 
 def cudnn_redist_init_repository(
         cudnn_redistributions,
+        mirrored_tar_cudnn_redistributions = {},
         cudnn_redist_path_prefix = CUDNN_REDIST_PATH_PREFIX,
+        mirrored_tar_cudnn_redist_path_prefix = MIRRORED_TAR_CUDNN_REDIST_PATH_PREFIX,
         redist_versions_to_build_templates = REDIST_VERSIONS_TO_BUILD_TEMPLATES):
     # buildifier: disable=function-docstring-args
     """Initializes CUDNN repository."""
+    url_dict = {}
+    mirrored_tar_url_dict = {}
     if "cudnn" in cudnn_redistributions.keys():
-        url_dict = _get_redistribution_urls(cudnn_redistributions["cudnn"])
-    else:
-        url_dict = {}
+        url_dict = _get_redistribution_urls(
+            cudnn_redistributions["cudnn"],
+        )
+        if "cudnn" in mirrored_tar_cudnn_redistributions.keys():
+            mirrored_tar_url_dict = _get_redistribution_urls(
+                mirrored_tar_cudnn_redistributions["cudnn"],
+            )
+
     repo_data = redist_versions_to_build_templates["cudnn"]
     versions, templates = get_version_and_template_lists(
         repo_data["version_to_template"],
@@ -558,22 +603,33 @@ def cudnn_redist_init_repository(
         versions = versions,
         build_templates = templates,
         url_dict = url_dict,
+        mirrored_tar_url_dict = mirrored_tar_url_dict,
         cudnn_redist_path_prefix = cudnn_redist_path_prefix,
+        mirrored_tar_cudnn_redist_path_prefix = mirrored_tar_cudnn_redist_path_prefix,
     )
 
 def cuda_redist_init_repositories(
         cuda_redistributions,
+        mirrored_tar_cuda_redistributions = {},
         cuda_redist_path_prefix = CUDA_REDIST_PATH_PREFIX,
+        mirrored_tar_cuda_redist_path_prefix = MIRRORED_TAR_CUDA_REDIST_PATH_PREFIX,
         redist_versions_to_build_templates = REDIST_VERSIONS_TO_BUILD_TEMPLATES):
     # buildifier: disable=function-docstring-args
     """Initializes CUDA repositories."""
     for redist_name, _ in redist_versions_to_build_templates.items():
         if redist_name in ["cudnn", "cuda_nccl"]:
             continue
+        url_dict = {}
+        mirrored_tar_url_dict = {}
         if redist_name in cuda_redistributions.keys():
-            url_dict = _get_redistribution_urls(cuda_redistributions[redist_name])
-        else:
-            url_dict = {}
+            url_dict = _get_redistribution_urls(
+                cuda_redistributions[redist_name],
+            )
+            if redist_name in mirrored_tar_cuda_redistributions.keys():
+                mirrored_tar_url_dict = _get_redistribution_urls(
+                    mirrored_tar_cuda_redistributions[redist_name],
+                )
+
         repo_data = redist_versions_to_build_templates[redist_name]
         versions, templates = get_version_and_template_lists(
             repo_data["version_to_template"],
@@ -583,5 +639,7 @@ def cuda_redist_init_repositories(
             versions = versions,
             build_templates = templates,
             url_dict = url_dict,
+            mirrored_tar_url_dict = mirrored_tar_url_dict,
             cuda_redist_path_prefix = cuda_redist_path_prefix,
+            mirrored_tar_cuda_redist_path_prefix = mirrored_tar_cuda_redist_path_prefix,
         )
