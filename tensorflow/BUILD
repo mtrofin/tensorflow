@@ -1033,6 +1033,7 @@ package_group(
         "//waymo/accelerator/...",
         "//waymo/ml/cn/...",
         "//waymo/ml/models/...",
+        "@org_xprof//xprof/...",
     ],
 )
 
