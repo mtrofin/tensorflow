@@ -21,6 +21,7 @@ package_group(
     packages = [
         "//learning/brain/experimental/jax_tpu_embedding/...",
         "//learning/brain/public/...",
+        "//learning/infra/mira/distributed/...",
         "//tensorflow/core/...",
         "//tensorflow/dtensor/...",
         "//tensorflow/python/...",

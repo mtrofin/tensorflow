@@ -46,6 +46,7 @@ package_group(
     name = "friends",
     includes = [":internal"],
     packages = [
+        "//learning/infra/mira/distributed/...",
         "//platforms/performance/automl/...",
         "//tensorflow/...",
         "//tensorflow_federated/cc/core/impl/executors/...",

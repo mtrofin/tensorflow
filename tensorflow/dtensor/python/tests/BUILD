@@ -40,7 +40,6 @@ pytype_strict_library(
     deps = [
         "//tensorflow/dtensor/python:api",
         "//tensorflow/dtensor/python:config",
-        "//tensorflow/dtensor/python:dtensor_device",
         "//tensorflow/dtensor/python:layout",
         "//tensorflow/dtensor/python:numpy_util",
         "//tensorflow/dtensor/python:tpu_util",
@@ -198,7 +197,6 @@ dtensor_test(
     deps = [
         ":test_util",
         "//tensorflow/dtensor/python:api",
-        "//tensorflow/dtensor/python:config",
         "//tensorflow/dtensor/python:d_variable",
         "//tensorflow/dtensor/python:dtensor_device",
         "//tensorflow/dtensor/python:layout",
@@ -230,7 +228,6 @@ dtensor_test(
     deps = [
         ":test_util",
         "//tensorflow/dtensor/python:api",
-        "//tensorflow/dtensor/python:config",
         "//tensorflow/dtensor/python:d_variable",
         "//tensorflow/dtensor/python:dtensor_device",
         "//tensorflow/dtensor/python:layout",
@@ -493,6 +490,16 @@ pytype_strict_library(
         "//tensorflow/python/platform:client_testlib",
         "@absl_py//absl/flags",
         "@pypi_portpicker//:pkg",
+    ],
+)
+
+pytype_strict_library(
+    name = "test_backend_util_oss",
+    srcs = ["test_backend_util.oss.py"],
+    deps = [
+        ":test_util",
+        "//tensorflow/dtensor/python:tpu_util",
+        "//tensorflow/python/platform:client_testlib",
     ],
 )
 
