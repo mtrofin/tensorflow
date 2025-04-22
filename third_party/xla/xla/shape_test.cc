@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "absl/hash/hash_testing.h"
+#include "absl/log/check.h"
 #include "xla/hlo/testlib/test.h"
 #include "xla/layout.h"
 #include "xla/shape_util.h"
@@ -60,7 +61,7 @@ TEST_F(ShapeTest, ShapeToFromProto) {
   for (const Shape& shape :
        {opaque_, token_, scalar_, matrix_, matrix2_, tuple_, nested_tuple_,
         dynamic_matrix_, unbounded_}) {
-    Shape shape_copy(shape.ToProto());
+    Shape shape_copy = Shape::FromProto(shape.ToProto());
     EXPECT_TRUE(ShapeUtil::Equal(shape, shape_copy))
         << shape << " != " << shape_copy;
   }
@@ -326,7 +327,8 @@ void BM_ShapeCopy(::testing::benchmark::State& state) {
   state.SetLabel(shape.ToString(true));
 
   for (auto s : state) {
-    Shape copy(shape);
+    Shape copy = Shape::FromProto(shape.ToProto());
+    CHECK(ShapeUtil::Equal(shape, copy));
   }
 }
 BENCHMARK(BM_ShapeCopy)->Arg(0)->Arg(1)->Arg(2);

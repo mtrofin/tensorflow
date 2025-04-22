@@ -30,6 +30,7 @@ limitations under the License.
 #include "xla/primitive_util.h"
 #include "xla/printer.h"
 #include "xla/shape.h"
+#include "xla/status_macros.h"
 #include "xla/tsl/platform/logging.h"  // IWYU pragma: keep
 #include "xla/xla_data.pb.h"
 
@@ -196,7 +197,8 @@ Layout& Layout::operator=(const Layout& other) {
 
 Layout& Layout::operator=(Layout&& other) = default;
 
-/* static */ Layout Layout::CreateFromProto(const LayoutProto& proto) {
+/* static */ absl::StatusOr<Layout> Layout::FromProto(
+    const LayoutProto& proto) {
   Layout layout;
   for (int dim_level_type : proto.dim_level_types()) {
     layout.add_dim_level_type(static_cast<DimLevelType>(dim_level_type));
@@ -219,8 +221,8 @@ Layout& Layout::operator=(Layout&& other) = default;
   const auto alignment = proto.tail_padding_alignment_in_elements() != 0
                              ? proto.tail_padding_alignment_in_elements()
                              : 1;
-  layout.set_tail_padding_alignment_in_elements(alignment,
-                                                ActionOnError::kWarning);
+  TF_RET_CHECK(alignment > 0);
+  layout.set_tail_padding_alignment_in_elements(alignment);
   layout.set_index_primitive_type(proto.index_primitive_type());
   layout.set_pointer_primitive_type(proto.pointer_primitive_type());
   layout.set_element_size_in_bits(proto.element_size_in_bits());
