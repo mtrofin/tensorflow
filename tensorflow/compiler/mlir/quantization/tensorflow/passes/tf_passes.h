@@ -25,11 +25,37 @@ limitations under the License.
 #include "mlir/IR/BuiltinOps.h"  // from @llvm-project
 #include "mlir/Pass/Pass.h"  // from @llvm-project
 #include "mlir/Support/LLVM.h"  // from @llvm-project
+#include "tensorflow/compiler/mlir/quantization/common/quantization_lib/quantization_config.h"
 #include "tensorflow/compiler/mlir/quantization/stablehlo/quantization_config.pb.h"
 #include "tensorflow/compiler/mlir/quantization/tensorflow/quantization_options.pb.h"
 
 namespace mlir {
 namespace quant {
+
+// Converts dequantize-(quantizable) call-quantize pattern to a single call op
+// that has quantized input and output types. It is expected for this pass to
+// emit illegal IR with unsupported quantized input and output types. The
+// pass following immediately after this one will be responsible for legalizing
+// input and output types by unwrapping quantization parameters.
+std::unique_ptr<OperationPass<func::FuncOp>> CreateQuantizePass();
+
+// Overloading of CreateQuantizePass which takes QuantizationSpecs.
+std::unique_ptr<OperationPass<func::FuncOp>> CreateQuantizePass(
+    QuantizationSpecs quant_specs,
+    tensorflow::quantization::OpSet target_opset);
+
+// Creates an instance of the PrepareQuantize pass, which will perform similar
+// transformations as TFL::PrepareQuantizePass.
+std::unique_ptr<OperationPass<func::FuncOp>> CreateTFPrepareQuantizePass(
+    const QuantizationSpecs& quant_specs,
+    tensorflow::quantization::QuantizationMethod::PresetMethod
+        quantization_method);
+
+// Creates an instance of the PrepareQuantizeDRQ pass, which will
+// perform similar transformations as TFL::PrepareQuantizeDynamicRangePass.
+std::unique_ptr<OperationPass<ModuleOp>> CreateTFPrepareQuantizeDRQPass(
+    const QuantizationSpecs& quant_specs,
+    tensorflow::quantization::OpSet op_set);
 
 // Converts FakeQuant ops to quant.qcast and quant.dcast (QDQ) pairs.
 std::unique_ptr<OperationPass<func::FuncOp>>
