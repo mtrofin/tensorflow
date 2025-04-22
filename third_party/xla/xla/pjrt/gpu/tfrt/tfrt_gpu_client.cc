@@ -1518,15 +1518,9 @@ absl::StatusOr<std::unique_ptr<PjRtBuffer>> TfrtGpuClient::CreateErrorBuffer(
 
   // Create a dummy buffer because the rest of the code expects a buffer
   // regardless of whether the definition event is an error.
-  int64_t byte_size = ShapeUtil::ByteSizeOf(shape);
-  void* device_ptr = device->allocator()->AllocateRaw(
-      tsl::Allocator::kAllocatorAlignment, byte_size);
-  se::DeviceMemoryBase device_memory(device_ptr, byte_size);
-  auto gpu_buffer =
-      MaybeOwningGpuMemory(device->allocator(), std::move(device_memory));
   auto buffer_async_value_ref =
       tsl::MakeAvailableAsyncValueRef<MaybeOwningGpuMemory>(
-          std::move(gpu_buffer));
+          MaybeOwningGpuMemory());
   auto tracked_device_buffer = std::make_unique<TrackedTfrtGpuDeviceBuffer>(
       std::move(buffer_async_value_ref),
       /*definition_event=*/tsl::MakeErrorAsyncValueRef(std::move(error)));
@@ -2753,6 +2747,44 @@ absl::StatusOr<PjRtLoadedExecutable::Result> TfrtGpuExecutable::ExecuteHelper(
     device_assignment = std::make_shared<DeviceAssignment>(1, 1);
     (*device_assignment)(0, 0) = device->id();
   }
+
+  auto get_first_input_error =
+      [](absl::Span<PjRtBuffer* const>& argument_handles) {
+        for (auto* handle : argument_handles) {
+          auto* tfrt_buffer = tsl::down_cast<TfrtGpuBuffer*>(handle);
+          auto usage_event = tsl::MakeConstructedAsyncValueRef<GpuEvent>();
+          auto* device_buffer = tfrt_buffer->AcquireUsage(usage_event);
+          if (device_buffer == nullptr) {
+            return absl::InvalidArgumentError(
+                "get_first_input_error called on deleted or donated buffer");
+          }
+          MarkGpuEventReadyOnExit ready_on_exit(std::move(usage_event));
+          auto device_definition_event =
+              device_buffer->definition_event().CopyRCRef();
+          if (device_definition_event->IsError()) {
+            return device_definition_event->GetError();
+          }
+        }
+        return absl::OkStatus();
+      };
+
+  absl::Status input_error = get_first_input_error(argument_handles);
+  if (!input_error.ok()) {
+    TF_ASSIGN_OR_RETURN(PjRtMemorySpace * memory_space,
+                        device->default_memory_space());
+    std::vector<std::unique_ptr<PjRtBuffer>> outputs;
+    TF_ASSIGN_OR_RETURN(auto hlo_modules, GetHloModules());
+    for (const auto& hlo_module : hlo_modules) {
+      TF_ASSIGN_OR_RETURN(
+          auto error_buffer,
+          client_->CreateErrorBuffer(input_error, hlo_module->result_shape(),
+                                     memory_space));
+      outputs.push_back(std::move(error_buffer));
+    }
+    auto future = std::make_optional(PjRtFuture<>(input_error));
+    return Result({std::move(future), /*buffers=*/std::move(outputs)});
+  }
+
   CHECK_EQ(device->process_index(), client_->process_index());
 
   if (VLOG_IS_ON(2)) {
@@ -2807,6 +2839,8 @@ absl::StatusOr<PjRtLoadedExecutable::Result> TfrtGpuExecutable::ExecuteHelper(
       parameters_that_must_be_donated_[executable_idx];
   auto donate_it = donated_params.begin();
 
+  absl::flat_hash_map<const void*, std::pair<bool, int>> donation_clashes;
+  donation_clashes.reserve(argument_handles.size());
   for (int i = 0; i < argument_handles.size(); ++i) {
     PjRtBuffer* handle = argument_handles[i];
     auto* tfrt_buffer = tsl::down_cast<TfrtGpuBuffer*>(handle);
@@ -2824,6 +2858,8 @@ absl::StatusOr<PjRtLoadedExecutable::Result> TfrtGpuExecutable::ExecuteHelper(
     TrackedTfrtGpuDeviceBuffer* tracked_buffer = nullptr;
     if (must_donate) {
       ++donate_it;
+      TF_RETURN_IF_ERROR(TestBufferDonationClashes(
+          handle, donation_clashes, must_donate, i, replica, partition));
       TF_ASSIGN_OR_RETURN(auto donation_transaction,
                           tfrt_buffer->AcquireDonation());
 
