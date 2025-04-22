@@ -59,6 +59,9 @@ class ShapeLayout {
   // Clears (Layout::Clear) all the Layouts stored in this object.
   void Clear();
   void Clear(ShapeIndexView shape_index);
+  // Clears all the tiles in the layouts stored in this object.
+  void ClearTiles();
+  void ClearTiles(ShapeIndexView shape_index);
 
   // Sets all Layouts stored in this object to the default layout.
   void SetToDefaultLayout();
@@ -73,6 +76,10 @@ class ShapeLayout {
   // Checks that a layout is set for the shape, and returns a reference to the
   // layout directly on the shape. Shape must not be a tuple.
   const Layout& layout() const;
+  Layout* mutable_layout(ShapeIndexView shape_index = {}) {
+    return ShapeUtil::GetMutableSubshape(&shape_, shape_index)
+        ->mutable_layout();
+  }
 
   // Returns true if all layouts have been set for this ShapeLayout object. That
   // is, every array has a layout.
