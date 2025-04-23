@@ -36,6 +36,7 @@ struct CudaComputeCapability {
   enum CudaComputeCapabilities {
     kPascal = 6,
     kVolta = 7,
+    kTuring = 7,
     kAmpere = 8,
     kHopper = 9,
     kBlackwell = 10
@@ -58,6 +59,10 @@ struct CudaComputeCapability {
 
   static CudaComputeCapability Volta() {
     return CudaComputeCapability{kVolta, 0};
+  }
+
+  static CudaComputeCapability Turing() {
+    return CudaComputeCapability{kTuring, 5};
   }
 
   static CudaComputeCapability Ampere() {

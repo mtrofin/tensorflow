@@ -18,6 +18,7 @@ limitations under the License.
 #include <tuple>
 #include <vector>
 
+#include <gtest/gtest.h>
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
@@ -30,11 +31,11 @@ limitations under the License.
 #include "xla/service/gpu/transforms/gemm_rewriter.h"
 #include "xla/service/gpu/transforms/gemm_rewriter_test_lib.h"
 #include "xla/service/pattern_matcher.h"
+#include "xla/stream_executor/cuda/cuda_compute_capability.h"
 #include "xla/stream_executor/device_description.h"
 #include "xla/stream_executor/semantic_version.h"
 #include "xla/xla.pb.h"
 #include "xla/xla_data.pb.h"
-#include "tsl/platform/statusor.h"
 
 namespace xla {
 namespace gpu {
@@ -55,6 +56,11 @@ class LegacyCublasGemmRewriteTest : public GemmRewriteTestBase {
 };
 
 TEST_F(LegacyCublasGemmRewriteTest, MatrixVectorMultiplication) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+
   const char* hlo_text = R"(
 HloModule m
 
@@ -78,6 +84,11 @@ ENTRY e {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, MatrixVectorMultiplicationWithBatch) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+
   const char* hlo_text = R"(
 HloModule m
 
@@ -102,6 +113,10 @@ ENTRY e {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, SparseDotNotSupported) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -128,6 +143,10 @@ ENTRY main {
 // will be used as the bias. This negate(param_2) has no semantic use, it simply
 // exists so that bias may be overwritten.
 TEST_F(LegacyCublasGemmRewriteTest, AlphaBetaRewrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule NonZeroAlphaBeta
 
@@ -176,6 +195,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, BiasMultipleUsersNoOverwrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule BiasMultipleUsersNoOverwrite
 
@@ -220,6 +243,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, BiasParameterNoOverwrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule BiasParameterNoOverwrite
 
@@ -259,6 +286,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, BiasTupleParameterOverwrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule BiasTupleParameterOverwrite
 
@@ -305,6 +336,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, AliasedBiasOverwrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule AliasedBiasOverwrite, input_output_alias={ {}: (2, {}, must-alias) }
 
@@ -352,6 +387,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, LargerBiasMultipleUsersNoRewrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule LargerBiasMultipleUsersNoRewrite
 
@@ -398,6 +437,10 @@ ENTRY AddDotsFunc {
 // will be used as the bias. This negate(param_2) has no semantic use, it simply
 // exists so that bias may be overwritten.
 TEST_F(LegacyCublasGemmRewriteTest, BF16GemmWithBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule BF16GemmWithBias
 
@@ -452,6 +495,10 @@ ENTRY BF16GemmWithBias {
 // will be used as the bias. This negate(param_2) has no semantic use, it simply
 // exists so that bias may be overwritten.
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -496,6 +543,10 @@ ENTRY test {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBiasWhereBiasIsNotAParameter) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -562,6 +613,10 @@ ENTRY test {
 
 // Test gemm matrix bias add fusion with mix type
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBiasMixType) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   std::vector<std::tuple<absl::string_view, absl::string_view>>
       type_combinations = {
           {"f16", "f32"},
@@ -606,6 +661,10 @@ ENTRY test {
 
 // Test batch gemm matrix bias add fusion with mix type
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBiasMixTypeBatched) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   std::vector<std::tuple<absl::string_view, absl::string_view>>
       type_combinations = {
           {"f16", "f32"},
@@ -649,6 +708,10 @@ ENTRY test {
 // Test batch gemm matrix bias add fusion with mix type that is not supported.
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBiasMixTypeNotSupported) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP()
         << "Pre-Ampere rewrites to cutlass_gemm_with_upcast instead of cublas.";
@@ -682,6 +745,10 @@ ENTRY test {
 // Test batch gemm matrix bias add fusion with mix type that is not supported
 // because there are consumers of bias add.
 TEST_F(LegacyCublasGemmRewriteTest, MatrixBiasMixTypeAddWithMoreConsumers) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -715,6 +782,10 @@ ENTRY test {
 }
 
 TEST_F(LegacyCublasGemmRewriteTest, MergeBitcastAndAdd) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 ENTRY test {
@@ -750,6 +821,10 @@ ENTRY test {
 // will be used as the bias. This negate(param_2) has no semantic use, it simply
 // exists so that bias may be overwritten.
 TEST_F(LegacyCublasGemmRewriteTest, FoldConstantBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 ENTRY test {
@@ -819,6 +894,10 @@ class CublasLtGemmRewriteTest : public GemmRewriteTestBase {
 };
 
 TEST_F(CublasLtGemmRewriteTest, AlphaBetaRewrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule NonZeroAlphaBeta
 
@@ -864,6 +943,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BiasMultipleUsersNoOverwrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule BiasMultipleUsersNoOverwrite
 
@@ -909,6 +992,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(CublasLtGemmRewriteTest, LargerBiasMultipleUsersNoRewrite) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule LargerBiasMultipleUsersNoRewrite
 
@@ -953,6 +1040,10 @@ ENTRY AddDotsFunc {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BF16GemmWithBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -999,6 +1090,10 @@ ENTRY BF16GemmWithBias {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MatrixBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1040,6 +1135,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasWhereBiasIsNotAParameter) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1105,6 +1204,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1148,6 +1251,10 @@ ENTRY test {
 
 // Epilogue Fusion disabled when GEMM has multiple users.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasMultipleUsers) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1239,6 +1346,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BatchedVectorBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1284,6 +1395,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BatchedSharedVectorBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1329,6 +1444,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasIncorrectAxisFusedAsMatrix) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1374,6 +1493,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasSliced) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1421,6 +1544,10 @@ ENTRY test {
 
 // Epilogue Fusion disabled when slice has multiple users.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasSlicedMultipleUsers) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1503,6 +1630,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasTransposed) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1544,6 +1675,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasThenMatrixBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1589,6 +1724,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BF16VectorBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1638,6 +1777,10 @@ ENTRY test {
 
 TEST_F(CublasLtGemmRewriteTest, BF16VectorBiasPadded) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP() << "Padding of GEMM bf16 operands only implemented on "
                     "architectures with bf16 Tensor Cores.";
@@ -1663,6 +1806,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1705,6 +1852,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BatchedReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1751,6 +1902,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ReluActivationSliced) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1796,6 +1951,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1841,6 +2000,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, SquareMatrixBiasReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1886,6 +2049,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1932,6 +2099,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, BatchedVectorBiasReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -1977,6 +2148,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasTransposedReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2026,6 +2201,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasThenMatrixBiasReluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2075,6 +2254,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ApproxGeluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2131,6 +2314,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ApproxGeluActivationWrongConstant) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   // Modify one constant slightly, so it should no longer pattern match.
   const char* hlo_text = R"(
 HloModule test
@@ -2168,6 +2355,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasThenApproxGeluActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   auto runtime_version = GetRuntimeVersion();
   bool rocm_gelu_available =
       IsRocm() &&
@@ -2235,6 +2426,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ApproxGeluActivationWithAux) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported blas-lt epilogue on ROCM";
   }
@@ -2295,6 +2490,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasThenApproxGeluActivationWithAux) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported blas-lt epilogue on ROCM";
   }
@@ -2360,6 +2559,10 @@ ENTRY test {
 
 TEST_F(CublasLtGemmRewriteTest, ApproxGeluActivationBF16) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP() << "Padding of GEMM bf16 operands only implemented on "
                     "architectures with bf16 Tensor Cores.";
@@ -2399,6 +2602,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ApproxGeluActivationBitcast) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2448,6 +2655,10 @@ ENTRY test {
 // For F16, the sizes of all dimensions of the operands are required to be
 // multiples of 8 to allow matrix bias fusion.
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasF16) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2490,6 +2701,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasF32UnpaddedWithBitcast) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2526,6 +2741,10 @@ ENTRY test {
 // For F16, the operands are padded on GPUs with Tensor Cores (i.e. Volta and
 // newer architectures) so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasF16Unpadded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2547,6 +2766,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasF16Padded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Volta())) {
     GTEST_SKIP() << "Padding of GEMM operands only implemented on "
@@ -2577,6 +2800,10 @@ ENTRY test {
 // For F16, the operands are padded on GPUs with Tensor Cores (i.e. Volta and
 // newer architectures) so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, ReluActivationF16Unpadded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2598,6 +2825,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, ReluActivationF16Padded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Volta())) {
     GTEST_SKIP() << "Padding of GEMM operands only implemented on "
@@ -2624,6 +2855,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasReluActivationF16) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2671,6 +2906,10 @@ ENTRY test {
 // For F16, the operands are padded on GPUs with Tensor Cores (i.e. Volta and
 // newer architectures) so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivationF16Unpadded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2695,6 +2934,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivationF16Padded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Volta())) {
     GTEST_SKIP() << "Padding of GEMM operands only implemented on "
@@ -2726,6 +2969,10 @@ ENTRY test {
 // For bfloat16, the sizes of all dimensions of the operands are required to be
 // multiples of 8 to allow matrix bias fusion.
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasBF16) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2774,6 +3021,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasBitcastBF16) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -2812,6 +3063,10 @@ ENTRY test {
 // architectures so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasBF16Unpadded) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP()
         << "Pre-Ampere rewrites to cutlass_gemm_with_upcast instead of cublas.";
@@ -2838,6 +3093,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasBF16Padded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP() << "Padding of GEMM operands in bfloat16 only implemented on "
@@ -2867,6 +3126,10 @@ ENTRY test {
 // architectures so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, ReluActivationBF16Unpadded) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP()
         << "Pre-Ampere rewrites to cutlass_gemm_with_upcast instead of cublas.";
@@ -2895,6 +3158,10 @@ ENTRY test {
 
 TEST_F(CublasLtGemmRewriteTest, ReluActivationBF16Padded) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP() << "Padding of GEMM operands in bfloat16 only implemented on "
                     "Ampere and newer architectures.";
@@ -2922,6 +3189,10 @@ ENTRY test {
 // For bfloat16, the operands are padded if necessary on Ampere and newer
 // architectures so that the sizes of all dimensions are multiples of 8.
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivationBF16Unpadded) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP()
@@ -2954,6 +3225,10 @@ ENTRY test {
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivationBF16Padded) {
   if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
+  if (IsCuda() &&
       !HasCudaComputeCapability(se::CudaComputeCapability::Ampere())) {
     GTEST_SKIP() << "Padding of GEMM operands in bfloat16 only implemented on "
                     "Ampere and newer architectures.";
@@ -2983,6 +3258,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, VectorBiasReluActivationF64) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported blas-lt F64 datatype on ROCM";
   }
@@ -3032,6 +3311,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, AlphaSimpleRewriteBiasAddActivation) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -3081,6 +3364,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, FoldConstantBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 ENTRY test {
@@ -3131,6 +3418,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, MultipleMaximumUsers) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule multiple_maximum_users
 
@@ -3171,6 +3462,10 @@ ENTRY main {
 // Test gemm matrix bias add fusion with mix type and out of place update(C !=
 // D)
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasMixTypeOutOfPlace) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported mixed datatypes on ROCM";
   }
@@ -3216,6 +3511,10 @@ ENTRY test {
 // Test batch gemm matrix bias add fusion with mix type and out of place
 // update(C != D)
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasMixTypeOutOfPlaceBatched) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported mixed datatypes on ROCM";
   }
@@ -3260,6 +3559,10 @@ ENTRY test {
 
 // Test gemm matrix bias add fusion with mix type and in place update(C = D)
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasMixTypeInPlace) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   if (IsRocm()) {
     GTEST_SKIP() << "TODO: Unsupported mixed datatypes on ROCM";
   }
@@ -3305,6 +3608,10 @@ ENTRY test {
 
 // Test gemm matrix bias add fusion with mix type that is not supported
 TEST_F(CublasLtGemmRewriteTest, MatrixBiasMixTypeNotSupported) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
@@ -3337,6 +3644,10 @@ ENTRY test {
 }
 
 TEST_F(CublasLtGemmRewriteTest, CublasLtFullyContractingRhsWithBias) {
+  if (IsCuda() &&
+      !HasCudaComputeCapability(se::CudaComputeCapability::Turing())) {
+    GTEST_SKIP() << "Test times out on Turing.";
+  }
   const char* hlo_text = R"(
 HloModule test
 
